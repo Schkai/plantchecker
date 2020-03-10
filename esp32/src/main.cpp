@@ -1,21 +1,18 @@
-/*
-#the approximate moisture levels for the sensor reading
-# 0 to 300 dry soil
-# 300 to 700 humid soil
-# 700 to 950 in water
-*/
-
 #include "Arduino.h"
 
-#ifndef ledPin
 #define ledPin 2
-#endif
+#define soilPin 36
 
-#define sensorPin 36
-int trigger = 300; // set the moisture level
+// Value for 0RH: 2450
+// Value for 100RH 900
+const int AirValue = 2450;
+const int WaterValue = 900;
+int intervals = (AirValue - WaterValue) / 3;
+int soilMoistureValue = 0;
 
 void setup()
 {
+    //Set Baud rate to 115200
     Serial.begin(115200);
     pinMode(ledPin, OUTPUT);
     //init LED digital pin as an output
@@ -25,21 +22,26 @@ void setup()
 
 void loop()
 {
-    // Value for 0RH: 2450
-    // Value for 100RH 900
+
     Serial.println("Moisture Sensor Value:");
     //TODO: Get correct reading of sensor data e.g. after current
-    Serial.println(analogRead(sensorPin)); // read the value from the sensor
-    float sensor_reading = (analogRead(sensorPin));
-    if (sensor_reading >= trigger)
+    Serial.println(analogRead(soilPin)); // read the value from the sensor
+    soilMoistureValue = analogRead(soilPin);
+
+    if (soilMoistureValue > WaterValue && soilMoistureValue < (WaterValue + intervals))
     {
-        digitalWrite(ledPin, HIGH); // turn on the LED
+        Serial.println("Very Wet Soil");
     }
-    else
+    else if (soilMoistureValue > (WaterValue + intervals) && soilMoistureValue < (AirValue - intervals))
     {
-        digitalWrite(ledPin, LOW); // turn off LED
+        Serial.println("Wet Soil");
     }
-    delay(200);
+    else if (soilMoistureValue < AirValue && soilMoistureValue > (AirValue - intervals))
+    {
+        Serial.println("Dry Soil");
+    }
+
+    delay(500);
 }
 
 void switch_leds()
@@ -61,6 +63,6 @@ void switch_leds()
 
 void read_analog()
 {
-    Serial.println(analogRead(sensorPin));
+    Serial.println(analogRead(soilPin));
     delay(100);
 }
