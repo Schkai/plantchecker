@@ -99,6 +99,7 @@ coverage.xml
 *.mo
 *.pot
 
+config.h
 # Scrapy stuff:
 .scrapy
 

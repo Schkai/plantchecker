@@ -1,7 +1,13 @@
 #include "Arduino.h"
+#include <WiFi.h>
+#include <config.h>
 
 #define ledPin 2
 #define soilPin 36
+
+//define environment variables
+const char ssid[] = SSID;
+const char wifi_password[] = WIFI_PASSWORD;
 
 // Value for 0RH: 2450
 // Value for 100RH 900
