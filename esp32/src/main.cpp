@@ -25,11 +25,12 @@ void setup()
 
 void loop()
 {
-
+    // Value for 0RH: 2450
+    // Value for 100RH 900
     Serial.println("Moisture Sensor Value:");
     //TODO: Get correct reading of sensor data e.g. after current
-    Serial.println(analogRead(sensorPin) / 3.3); // read the value from the sensor
-    float sensor_reading = (analogRead(sensorPin) / 3.3);
+    Serial.println(analogRead(sensorPin)); // read the value from the sensor
+    float sensor_reading = (analogRead(sensorPin));
     if (sensor_reading >= trigger)
     {
         digitalWrite(ledPin, HIGH); // turn on the LED
