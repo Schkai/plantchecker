@@ -1,6 +1,8 @@
 #include "Arduino.h"
 #include <WiFi.h>
 #include <config.h>
+#include <WiFiClientSecure.h>
+#include <PubSubClient.h>
 
 #define ledPin 2
 #define soilPin 36
@@ -8,6 +10,10 @@
 //define environment variables
 const char ssid[] = SSID;
 const char wifi_password[] = WIFI_PASSWORD;
+
+//Instantiate Wireless Clients
+WiFiClientSecure secureClient = WiFiClientSecure();
+PubSubClient mqttClient(secureClient);
 
 // Value for 0RH: 2450
 // Value for 100RH 900
@@ -50,6 +56,43 @@ void loop()
     delay(500);
 }
 
+void connectToWifi()
+{
+    Serial.print("Connecting to Wifi");
+    Serial.print(SSID);
+    WiFi.begin(SSID, wifi_password);
+    while (WiFi.status != WL_CONNECTED)
+    {
+        Serial.print("Not connected..");
+        delay(5000);
+    }
+
+    Serial.println("Wifi Connected.")
+}
+
+void connectToAWSIoTCore()
+{
+    //Setup MQTT Connection to AWS IoT Core
+    mqttClient.setServer(AWS_END_POINT, 8883);
+    secureClient.setCACert(AWS_PUBLIC_CERT);
+    secureClient.setCertificate(AWS_DEVICE_CERT);
+    secureClient.setPrivateKey(AWS_PRIVATE_KEY);
+    Serial.println("Connecting to MQTT IoT Core...");
+
+    mqttClient.connect(DEVICE_NAME);
+
+    //Check if MQTT Client is connected
+    while (!mqttClient.connected())
+    {
+        Serial.println("Connecting to MQTT IoT Core...");
+        mqttClient.connect(DEVICE_NAME);
+        delay(5000);
+    }
+
+    //If connected
+    Serial.println("MQTT Connected.");
+}
+
 void switch_leds()
 {
     //turn the LED on (HIGH is the voltage level)
@@ -65,10 +108,4 @@ void switch_leds()
 
     //wait for a second
     delay(1000);
-}
-
-void read_analog()
-{
-    Serial.println(analogRead(soilPin));
-    delay(100);
 }
