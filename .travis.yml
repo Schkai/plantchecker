@@ -32,5 +32,7 @@ install:
     - pip install -U platformio
     - platformio update
 
+before_script: cd esp32/
+
 script:
     - platformio run
