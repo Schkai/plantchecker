@@ -61,13 +61,13 @@ void connectToWifi()
     Serial.print("Connecting to Wifi");
     Serial.print(SSID);
     WiFi.begin(SSID, wifi_password);
-    while (WiFi.status != WL_CONNECTED)
+    while (WiFi.status() != WL_CONNECTED)
     {
         Serial.print("Not connected..");
         delay(5000);
     }
 
-    Serial.println("Wifi Connected.")
+    Serial.println("Wifi Connected.");
 }
 
 void connectToAWSIoTCore()
