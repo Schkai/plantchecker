@@ -3,17 +3,19 @@
 #include <config.h>
 #include <WiFiClientSecure.h>
 #include <PubSubClient.h>
+#include <ArduinoJson.h>
 
+//define ESP32 Pins
 #define ledPin 2
 #define soilPin 36
-
-//define environment variables
-const char ssid[] = SSID;
-const char wifi_password[] = WIFI_PASSWORD;
 
 //Instantiate Wireless Clients
 WiFiClientSecure secureClient = WiFiClientSecure();
 PubSubClient mqttClient(secureClient);
+
+//Constants
+const int MQTT_PORT = 8883;
+const char PLANT_TOPIC[] = "plants/";
 
 // Value for 0RH: 2450
 // Value for 100RH 900
@@ -22,45 +24,60 @@ const int WaterValue = 900;
 int intervals = (AirValue - WaterValue) / 3;
 int soilMoistureValue = 0;
 
-void setup()
+void publishPlantState(String moistureStatus)
 {
-    //Set Baud rate to 115200
-    Serial.begin(115200);
-    pinMode(ledPin, OUTPUT);
-    //init LED digital pin as an output
-    pinMode(ledPin, OUTPUT);
-    Serial.println("ESP32 RUNNING");
+    // create 200 byte json payload
+    StaticJsonDocument<200> jsonDocument;
+    JsonObject eventDoc = jsonDocument.createNestedObject("event");
+    eventDoc["moistureStatus"] = moistureStatus;
+    char payload[200];
+    serializeJson(eventDoc, payload);
+
+    mqttClient.publish(PLANT_TOPIC, payload);
 }
 
-void loop()
+// callback function for when a message is dequeued from the MQTT server
+void callback(char *topic, byte *payload, unsigned int length)
 {
+    // print message  for debugging
+    Serial.print("Message arrived: ");
+    for (int i = 0; i < length; i++)
+    {
+        Serial.print((char)payload[i]);
+    }
+    Serial.println("--");
+}
 
+String getCurrentMoistureStatus()
+{
     Serial.println("Moisture Sensor Value:");
-    //TODO: Get correct reading of sensor data e.g. after current
+    //TODO: Refine reading of sensor data e.g. after current
     Serial.println(analogRead(soilPin)); // read the value from the sensor
     soilMoistureValue = analogRead(soilPin);
+    String moistureStatus;
 
     if (soilMoistureValue > WaterValue && soilMoistureValue < (WaterValue + intervals))
     {
         Serial.println("Very Wet Soil");
+        moistureStatus = "Very Wet Soil";
     }
     else if (soilMoistureValue > (WaterValue + intervals) && soilMoistureValue < (AirValue - intervals))
     {
         Serial.println("Wet Soil");
+        moistureStatus = "Wet Soil";
     }
     else if (soilMoistureValue < AirValue && soilMoistureValue > (AirValue - intervals))
     {
         Serial.println("Dry Soil");
+        moistureStatus = "Dry";
     }
-
-    delay(500);
+    return moistureStatus;
 }
 
 void connectToWifi()
 {
     Serial.print("Connecting to Wifi");
-    Serial.print(SSID);
-    WiFi.begin(SSID, wifi_password);
+    WiFi.begin(SSID, WIFI_PASSWORD);
     while (WiFi.status() != WL_CONNECTED)
     {
         Serial.print("Not connected..");
@@ -73,7 +90,8 @@ void connectToWifi()
 void connectToAWSIoTCore()
 {
     //Setup MQTT Connection to AWS IoT Core
-    mqttClient.setServer(AWS_END_POINT, 8883);
+    mqttClient.setServer(AWS_END_POINT, MQTT_PORT);
+    mqttClient.setCallback(callback);
     secureClient.setCACert(AWS_PUBLIC_CERT);
     secureClient.setCertificate(AWS_DEVICE_CERT);
     secureClient.setPrivateKey(AWS_PRIVATE_KEY);
@@ -86,6 +104,7 @@ void connectToAWSIoTCore()
     {
         Serial.println("Connecting to MQTT IoT Core...");
         mqttClient.connect(DEVICE_NAME);
+        // Wait 5 seconds before retrying
         delay(5000);
     }
 
@@ -108,4 +127,28 @@ void switch_leds()
 
     //wait for a second
     delay(1000);
+}
+
+void setup()
+{
+    //Set Baud rate to 115200
+    Serial.begin(115200);
+    pinMode(ledPin, OUTPUT);
+    //init LED digital pin as an output
+    pinMode(ledPin, OUTPUT);
+    Serial.println("ESP32 RUNNING");
+
+    //Start WiFi Connection
+    connectToWifi();
+
+    //Start MQTT Connection
+    connectToAWSIoTCore();
+}
+
+void loop()
+{
+    String moistureStatus = getCurrentMoistureStatus();
+    publishPlantState(moistureStatus);
+
+    delay(10000);
 }
