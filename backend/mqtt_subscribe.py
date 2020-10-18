@@ -5,7 +5,7 @@ from time import gmtime, strftime
 
 temperature_topic = "temperature/#"
 humidity_topic = "humidity/#"
-
+database_file = "data.db"
 
 def on_connect(client, userdata, flags, rc):
     print("Connected with code "+str(rc))
@@ -15,12 +15,16 @@ def on_connect(client, userdata, flags, rc):
 
 def on_message(client, userdata, msg):
     current_time = strftime("%Y-%m-%d %H:%M:%S", gmtime())
-    result = (current_time + "\t" + str(msg.payload))
-    print(msg.topic + ":\t" + result)
+    
+    write_to_database(msg.topic, current_time, msg.payload)
 
 
-def write_to_database(topic, time, temperature, humidity):
-    pass
+def write_to_database(topic, time, payload):
+    print(topic, time, payload)
+    conn = sqlite3.connect(database_file)
+    c = conn.cursor()
+    c.execute("INSERT INTO test VALUES (?,?,?)", (topic, time, payload))
+    conn.commit()
 
 
 

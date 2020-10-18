@@ -5,5 +5,5 @@ import paho.mqtt.client as mqtt
 client = mqtt.Client()
 client.connect("0.0.0.0", 1883, 60)
 
-client.publish("test/temperature", "25 C")
+client.publish("test/temperature", "25")
 client.disconnect()
